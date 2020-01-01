@@ -1,5 +1,5 @@
-// Copyright (c) 2019 The Zel developers
-// Copyright (c) 2019 The Zcash developers
+// Copyright (c) 2020 The Zel developers
+// Copyright (c) 2020 The Zcash developers
 
 // Original code from: https://gist.github.com/laanwj/0e689cfa37b52bcbbb44
 

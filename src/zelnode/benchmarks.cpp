@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Zelcash Core developers
+// Copyright (c) 2020 The Zelcash Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
 

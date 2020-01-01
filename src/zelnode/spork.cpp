@@ -1,6 +1,6 @@
 // Copyright (c) 2014-2016 The Dash developers
-// Copyright (c) 2016-2019 The PIVX developers
-// Copyright (c) 2019 The Zel developers
+// Copyright (c) 2016-2020 The PIVX developers
+// Copyright (c) 2020 The Zel developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
 

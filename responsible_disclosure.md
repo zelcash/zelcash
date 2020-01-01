@@ -1,4 +1,4 @@
-This page is copyright The Electric Coin Company, 2019. It is posted in order to conform to this standard: https://github.com/RD-Crypto-Spec/Responsible-Disclosure/tree/d47a5a3dafa5942c8849a93441745fdd186731e6
+This page is copyright The Electric Coin Company, 2020. It is posted in order to conform to this standard: https://github.com/RD-Crypto-Spec/Responsible-Disclosure/tree/d47a5a3dafa5942c8849a93441745fdd186731e6
 
 # Security Disclosures
 ## Receiving Disclosures
