@@ -276,7 +276,7 @@ public:
         consensus.nDigishieldMaxAdjustDown = 32; // 32% adjustment down
         consensus.nDigishieldMaxAdjustUp = 16; // 16% adjustment up
         consensus.nPowAllowMinDifficultyBlocksAfterHeight = 0;
-        consensus.nPowTargetSpacing = 15;
+        consensus.nPowTargetSpacing = 2 * 60;
 
         consensus.vUpgrades[Consensus::BASE_SPROUT].nProtocolVersion = 170002;
         consensus.vUpgrades[Consensus::BASE_SPROUT].nActivationHeight =
@@ -302,7 +302,7 @@ public:
         consensus.vUpgrades[Consensus::UPGRADE_KAMATA].nActivationHeight = 350;
 
         consensus.vUpgrades[Consensus::UPGRADE_FLUX].nProtocolVersion = 170017;
-        consensus.vUpgrades[Consensus::UPGRADE_FLUX].nActivationHeight = 4000; // Around March 30 2021
+        consensus.vUpgrades[Consensus::UPGRADE_FLUX].nActivationHeight = 420;
 
 
         consensus.nZawyLWMAAveragingWindow = 60;
@@ -310,7 +310,7 @@ public:
 
         eh_epoch_1 = eh48_5;
         eh_epoch_2 = eh48_5;
-        eh_epoch_3 = eh48_5;
+        eh_epoch_3 = zelHash;
 
         pchMessageStart[0] = 0xfa;
         pchMessageStart[1] = 0x1a;
@@ -389,17 +389,17 @@ public:
 
         // Flux rebrand values
         strExchangeFundingAddress = "tmRucHD85zgSigtA4sJJBDbPkMUJDcw5XDE";
-        nExchangeFundingHeight = 4100; // Around March 30th
+        nExchangeFundingHeight = 425;
         nExchangeFundingAmount = 7500000 * COIN; // 7.5 Million
 
-        strFoundationFundingAddress = "tmRucHD85zgSigtA4sJJBDbPkMUJDcw5XDE";
-        nFoundationFundingHeight = 4200;
+        strFoundationFundingAddress = "t2DFGpj2tciojsGKKrGVwQ92hUwAxWQQgJ9";
+        nFoundationFundingHeight = 430;
         nFoundationFundingAmount = 2500000 * COIN; // 2.5 Million
 
-        strSwapPoolAddress = "tmRucHD85zgSigtA4sJJBDbPkMUJDcw5XDE";
-        nSwapPoolStartHeight = 4300;
-        nSwapPoolAmount = 2200000 * COIN;
-        nSwapPoolInterval = 100;
+        strSwapPoolAddress = "t2Dsexh4v5g2dpL2LLCsR1p9TshMm63jSBM";
+        nSwapPoolStartHeight = 435;
+        nSwapPoolAmount = 2200000 * COIN; // 22 Million
+        nSwapPoolInterval = 5;
         nSwapPoolMaxTimes = 10;
 
     // Hardcoded fallback value for the Sprout shielded value pool balance
@@ -540,15 +540,15 @@ public:
         // Flux rebrand values
         strExchangeFundingAddress = "tmRucHD85zgSigtA4sJJBDbPkMUJDcw5XDE";
         nExchangeFundingHeight = 10;
-        nExchangeFundingAmount = 3000000 * COIN;
+        nExchangeFundingAmount = 7500000 * COIN;
 
         strFoundationFundingAddress = "t2DFGpj2tciojsGKKrGVwQ92hUwAxWQQgJ9";
-        nFoundationFundingHeight = 10;
-        nFoundationFundingAmount = 2500000 * COIN; // 2.5 Million
+        nFoundationFundingHeight = 20;
+        nFoundationFundingAmount = 2500000 * COIN;
 
         strSwapPoolAddress = "t2Dsexh4v5g2dpL2LLCsR1p9TshMm63jSBM";
-        nSwapPoolStartHeight = 10;
-        nSwapPoolAmount = 2100000 * COIN;
+        nSwapPoolStartHeight = 35;
+        nSwapPoolAmount = 22000000 * COIN;
         nSwapPoolInterval = 10;
         nSwapPoolMaxTimes = 5;
     }
