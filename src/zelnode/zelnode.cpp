@@ -912,8 +912,9 @@ void GetUndoDataForExpiredZelnodeDosScores(CZelnodeTxBlockUndo& p_zelnodeTxUndoD
 
     if (g_zelnodeCache.mapStartTxDosHeights.count(nUndoHeight)) {
         for (const auto& item : g_zelnodeCache.mapStartTxDosHeights.at(nUndoHeight)) {
-            if (g_zelnodeCache.mapStartTxDosTracker.count(item))
+            if (g_zelnodeCache.mapStartTxDosTracker.count(item)) {
                 p_zelnodeTxUndoData.vecExpiredDosData.emplace_back(g_zelnodeCache.mapStartTxDosTracker.at(item));
+            }
         }
     }
 }
@@ -1095,6 +1096,10 @@ void ZelnodeCache::CheckForExpiredStartTx(const int& p_nHeight)
             if (setAddToConfirm.count(item))
                 continue;
 
+            if (!g_zelnodeCache.mapStartTxTracker.count(item)) {
+                error("%s - %d g_zelnodeCache mapStartTxTracker doesn't have item - map::at should occurred ", __func__, __LINE__);
+            }
+
             ZelnodeCacheData data = g_zelnodeCache.mapStartTxTracker.at(item);
             data.nStatus = ZELNODE_TX_DOS_PROTECTION;
             mapStartTxDosTracker[item] = data;
@@ -1118,6 +1123,10 @@ void ZelnodeCache::CheckForUndoExpiredStartTx(const int& p_nHeight)
 
     if (g_zelnodeCache.mapStartTxDosHeights.count(removalHeight)) {
         for (const auto& item : g_zelnodeCache.mapStartTxDosHeights.at(removalHeight)) {
+            if (!g_zelnodeCache.mapStartTxDosTracker.count(item)) {
+                error("%s - %d g_zelnodeCache mapStartTxDosTracker doesn't have item - map::at should occurr ", __func__, __LINE__);
+            }
+
             mapStartTxTracker.insert(std::make_pair(item, g_zelnodeCache.mapStartTxDosTracker.at(item)));
             mapStartTxTracker.at(item).nStatus = ZELNODE_TX_STARTED;
             mapStartTxHeights[removalHeight].insert(item);
@@ -1184,8 +1193,15 @@ ZelnodeCacheData ZelnodeCache::GetZelnodeData(const COutPoint& out, int* nNeedLo
 
 bool ZelnodeCache::GetNextPayment(CTxDestination& dest, int nTier, COutPoint& p_zelnodeOut)
 {
+
+
     if (nTier == CUMULUS || nTier == NIMBUS || nTier == STRATUS) {
         LOCK(cs);
+
+        if (!mapZelnodeList.count(nTier)) {
+            error("%s - %d mapZelnodeList doesn't have nTier %d - map::at should occurr ", __func__, __LINE__, nTier);
+        }
+
         int setSize = mapZelnodeList.at(nTier).setConfirmedTxInList.size();
         if (setSize) {
             for (int i = 0; i < setSize; i++) {
@@ -1567,6 +1583,11 @@ bool ZelnodeCache::Flush()
 
             // Remove from Start Tracking
             g_zelnodeCache.mapStartTxTracker.erase(item.first);
+
+            if (!g_zelnodeCache.mapStartTxHeights.count(data.nAddedBlockHeight)) {
+                error("%s - %d g_zelnodeCache mapStartTxHeights doesn't have item - map::at should occurred ", __func__, __LINE__);
+            }
+
             g_zelnodeCache.mapStartTxHeights.at(data.nAddedBlockHeight).erase(item.first);
 
             // Update the data (STARTED --> CONFIRM)

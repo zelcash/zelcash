@@ -3834,8 +3834,7 @@ static int numberOfBlocksBeforeNextCheck = getrand(1,4);
  * corresponding to pindexNew, to bypass loading it again from disk.
  * You probably want to call mempool.removeWithoutBranchId after this, with cs_main held.
  */
-bool static ConnectTip(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexNew, const CBlock* pblock)
-{
+bool static ConnectTip(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexNew, const CBlock* pblock) {
     assert(pindexNew->pprev == chainActive.Tip());
     // Read block from disk.
     int64_t nTime1 = GetTimeMicros();
@@ -3847,7 +3846,7 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
     }
 
     // Set the starting lastManaged height for zelnodes
-    if(nZelnodeLastManaged == 0){
+    if (nZelnodeLastManaged == 0) {
         nZelnodeLastManaged = pindexNew->nHeight;
     }
 
@@ -3857,9 +3856,11 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
     assert(pcoinsTip->GetSproutAnchorAt(pcoinsTip->GetBestAnchor(SPROUT), oldSproutTree));
     assert(pcoinsTip->GetSaplingAnchorAt(pcoinsTip->GetBestAnchor(SAPLING), oldSaplingTree));
     // Apply the block atomically to the chain state.
-    int64_t nTime2 = GetTimeMicros(); nTimeReadFromDisk += nTime2 - nTime1;
+    int64_t nTime2 = GetTimeMicros();
+    nTimeReadFromDisk += nTime2 - nTime1;
     int64_t nTime3;
-    LogPrint("bench", "  - Load block from disk: %.2fms [%.2fs]\n", (nTime2 - nTime1) * 0.001, nTimeReadFromDisk * 0.000001);
+    LogPrint("bench", "  - Load block from disk: %.2fms [%.2fs]\n", (nTime2 - nTime1) * 0.001,
+             nTimeReadFromDisk * 0.000001);
     {
         CCoinsViewCache view(pcoinsTip);
         ZelnodeCache zelnodeCache;
@@ -3871,37 +3872,57 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
             return error("ConnectTip(): ConnectBlock %s failed", pindexNew->GetBlockHash().ToString());
         }
         mapBlockSource.erase(pindexNew->GetBlockHash());
-        nTime3 = GetTimeMicros(); nTimeConnectTotal += nTime3 - nTime2;
-        LogPrint("bench", "  - Connect total: %.2fms [%.2fs]\n", (nTime3 - nTime2) * 0.001, nTimeConnectTotal * 0.000001);
+        nTime3 = GetTimeMicros();
+        nTimeConnectTotal += nTime3 - nTime2;
+        LogPrint("bench", "  - Connect total: %.2fms [%.2fs]\n", (nTime3 - nTime2) * 0.001,
+                 nTimeConnectTotal * 0.000001);
         assert(view.Flush());
 
         assert(zelnodeCache.Flush());
 
-        LogPrint("dzelnode", "%s : Size of global zelnodeCache mapStartTxTracker : %u\n", __func__, g_zelnodeCache.mapStartTxTracker.size());
-        LogPrint("dzelnode", "%s : Size of global zelnodeCache mapStartTxDosTrackerTxTracker : %u\n", __func__, g_zelnodeCache.mapStartTxDosTracker.size());
+        LogPrint("dzelnode", "%s : Size of global zelnodeCache mapStartTxTracker : %u\n", __func__,
+                 g_zelnodeCache.mapStartTxTracker.size());
+        LogPrint("dzelnode", "%s : Size of global zelnodeCache mapStartTxDosTrackerTxTracker : %u\n", __func__,
+                 g_zelnodeCache.mapStartTxDosTracker.size());
     }
-    int64_t nTime4 = GetTimeMicros(); nTimeFlush += nTime4 - nTime3;
+    int64_t nTime4 = GetTimeMicros();
+    nTimeFlush += nTime4 - nTime3;
     LogPrint("bench", "  - Flush: %.2fms [%.2fs]\n", (nTime4 - nTime3) * 0.001, nTimeFlush * 0.000001);
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(state, FLUSH_STATE_IF_NEEDED))
         return false;
-    int64_t nTime5 = GetTimeMicros(); nTimeChainState += nTime5 - nTime4;
-    LogPrint("bench", "  - Writing chainstate: %.2fms [%.2fs]\n", (nTime5 - nTime4) * 0.001, nTimeChainState * 0.000001);
+    int64_t nTime5 = GetTimeMicros();
+    nTimeChainState += nTime5 - nTime4;
+    LogPrint("bench", "  - Writing chainstate: %.2fms [%.2fs]\n", (nTime5 - nTime4) * 0.001,
+             nTimeChainState * 0.000001);
     // Remove conflicting transactions from the mempool.
     list<CTransaction> txConflicted;
     mempool.removeForBlock(pblock->vtx, pindexNew->nHeight, txConflicted, !IsInitialBlockDownload(chainparams));
 
 
-    if (g_zelnodeCache.mapZelnodeList.at(CUMULUS).setConfirmedTxInList.size() != g_zelnodeCache.mapZelnodeList.at(CUMULUS).listConfirmedZelnodes.size()) {
-        error("Basic set map, doesn't have the same size as the listconfirmed zelnodes");
+    if (g_zelnodeCache.mapZelnodeList.count(CUMULUS)) {
+        if (g_zelnodeCache.mapZelnodeList.at(CUMULUS).setConfirmedTxInList.size() !=
+            g_zelnodeCache.mapZelnodeList.at(CUMULUS).listConfirmedZelnodes.size()) {
+            error("Basic set map, doesn't have the same size as the listconfirmed zelnodes");
+        }
+    } else {
+        error("g_zelnodeCache doesn't have CUMULUS in fluxnode list");
     }
 
-    if (g_zelnodeCache.mapZelnodeList.at(NIMBUS).setConfirmedTxInList.size() != g_zelnodeCache.mapZelnodeList.at(NIMBUS).listConfirmedZelnodes.size()) {
-        error("Super set map, doesn't have the same size as the listconfirmed zelnodes");
+    if (g_zelnodeCache.mapZelnodeList.count(NIMBUS)) {
+        if (g_zelnodeCache.mapZelnodeList.at(NIMBUS).setConfirmedTxInList.size() != g_zelnodeCache.mapZelnodeList.at(NIMBUS).listConfirmedZelnodes.size()) {
+            error("Super set map, doesn't have the same size as the listconfirmed zelnodes");
+        }
+    } else {
+        error("g_zelnodeCache doesn't have NIMBUS in fluxnode list");
     }
 
-    if (g_zelnodeCache.mapZelnodeList.at(STRATUS).setConfirmedTxInList.size() != g_zelnodeCache.mapZelnodeList.at(STRATUS).listConfirmedZelnodes.size()) {
-        error("STRATUS set map, doesn't have the same size as the listconfirmed zelnodes");
+    if (g_zelnodeCache.mapZelnodeList.count(STRATUS)) {
+        if (g_zelnodeCache.mapZelnodeList.at(STRATUS).setConfirmedTxInList.size() != g_zelnodeCache.mapZelnodeList.at(STRATUS).listConfirmedZelnodes.size()) {
+            error("STRATUS set map, doesn't have the same size as the listconfirmed zelnodes");
+        }
+    } else {
+        error("g_zelnodeCache doesn't have STRATUS in fluxnode list");
     }
 
     // Remove transactions that expire at new block height from mempool
@@ -4561,32 +4582,32 @@ bool CheckBlock(const CBlock& block, CValidationState& state,
     }
 
 
-    // Check the zelnode payouts
-    CBlockIndex* pindexPrev = chainActive.Tip();
-    int nHeight = 0;
-    if (pindexPrev != NULL) {
-        if (pindexPrev->GetBlockHash() == block.hashPrevBlock) {
-            nHeight = pindexPrev->nHeight + 1;
-        } else { //out of order
-            BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
-            if (mi != mapBlockIndex.end() && (*mi).second)
-                nHeight = (*mi).second->nHeight + 1;
-        }
-
-        // Because some peers could not have enough data to see that this block is invalid, don't ban them
-        // Because we might not have enough data to tell if the block is indeed valid, Issue an initial reject message
-        if (nHeight < chainparams.StartZelnodePayments()) {
-            if (nHeight != 0 && !IsInitialBlockDownload(chainparams)) {
-                if (!IsBlockPayeeValid(block, nHeight)) {
-                    LogPrint("zelnode", "%s : Couldn't find zelnode payment", __func__);
-                    return state.DoS(0, false, REJECT_INVALID, "bad-cb-payee");
-                }
-            } else {
-                if (fDebug)
-                    LogPrintf("%s : Zelnode payment check skipped on sync - skipping IsBlockPayeeValid()\n", __func__);
-            }
-        }
-    }
+//    // Check the zelnode payouts
+//    CBlockIndex* pindexPrev = chainActive.Tip();
+//    int nHeight = 0;
+//    if (pindexPrev != NULL) {
+//        if (pindexPrev->GetBlockHash() == block.hashPrevBlock) {
+//            nHeight = pindexPrev->nHeight + 1;
+//        } else { //out of order
+//            BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
+//            if (mi != mapBlockIndex.end() && (*mi).second)
+//                nHeight = (*mi).second->nHeight + 1;
+//        }
+//
+//        // Because some peers could not have enough data to see that this block is invalid, don't ban them
+//        // Because we might not have enough data to tell if the block is indeed valid, Issue an initial reject message
+//        if (nHeight < chainparams.StartZelnodePayments()) {
+//            if (nHeight != 0 && !IsInitialBlockDownload(chainparams)) {
+//                if (!IsBlockPayeeValid(block, nHeight)) {
+//                    LogPrint("zelnode", "%s : Couldn't find zelnode payment", __func__);
+//                    return state.DoS(0, false, REJECT_INVALID, "bad-cb-payee");
+//                }
+//            } else {
+//                if (fDebug)
+//                    LogPrintf("%s : Zelnode payment check skipped on sync - skipping IsBlockPayeeValid()\n", __func__);
+//            }
+//        }
+//    }
 
     // Check transactions
     BOOST_FOREACH(const CTransaction& tx, block.vtx)
@@ -4875,9 +4896,9 @@ bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams, c
     if (!ActivateBestChain(state, chainparams, pblock))
         return error("%s: ActivateBestChain failed", __func__);
 
-    if (zelnodeSync.RequestedZelnodeAssets > ZELNODE_SYNC_LIST) {
-        zelnodePayments.ProcessBlock(GetHeight() + 10);
-    }
+//    if (zelnodeSync.RequestedZelnodeAssets > ZELNODE_SYNC_LIST) {
+//        zelnodePayments.ProcessBlock(GetHeight() + 10);
+//    }
 
     return true;
 }

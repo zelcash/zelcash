@@ -639,140 +639,161 @@ UniValue viewdeterministiczelnodelist(const UniValue& params, bool fHelp)
 
     UniValue wholelist(UniValue::VARR);
     int count = 0;
-    for (const auto& item : g_zelnodeCache.mapZelnodeList.at(Zelnode::CUMULUS).listConfirmedZelnodes) {
 
-        auto data = g_zelnodeCache.GetZelnodeData(item.out);
+    if (g_zelnodeCache.mapZelnodeList.count(Zelnode::CUMULUS)) {
+        for (const auto &item : g_zelnodeCache.mapZelnodeList.at(Zelnode::CUMULUS).listConfirmedZelnodes) {
 
-        UniValue info(UniValue::VOBJ);
+            auto data = g_zelnodeCache.GetZelnodeData(item.out);
 
-        if (!data.IsNull()) {
-            std::string strTxHash = data.collateralIn.GetTxHash();
+            UniValue info(UniValue::VOBJ);
 
-            if (strFilter != "" && strTxHash.find(strFilter) == string::npos && HexStr(data.pubKey).find(strFilter) &&
-                data.ip.find(strFilter) && EncodeDestination(data.collateralPubkey.GetID()).find(strFilter) == string::npos)
-                continue;
+            if (!data.IsNull()) {
+                std::string strTxHash = data.collateralIn.GetTxHash();
 
-            std::string strHost = data.ip;
-            CNetAddr node = CNetAddr(strHost, false);
-            std::string strNetwork = GetNetworkName(node.GetNetwork());
+                if (strFilter != "" && strTxHash.find(strFilter) == string::npos &&
+                    HexStr(data.pubKey).find(strFilter) &&
+                    data.ip.find(strFilter) &&
+                    EncodeDestination(data.collateralPubkey.GetID()).find(strFilter) == string::npos)
+                    continue;
 
-            info.push_back(std::make_pair("collateral", data.collateralIn.ToFullString()));
-            info.push_back(std::make_pair("txhash", strTxHash));
-            info.push_back(std::make_pair("outidx", data.collateralIn.GetTxIndex()));
-            info.push_back(std::make_pair("ip", data.ip));
-            info.push_back(std::make_pair("network", strNetwork));
-            info.push_back(std::make_pair("added_height", data.nAddedBlockHeight));
-            info.push_back(std::make_pair("confirmed_height", data.nConfirmedBlockHeight));
-            info.push_back(std::make_pair("last_confirmed_height", data.nLastConfirmedBlockHeight));
-            info.push_back(std::make_pair("last_paid_height", data.nLastPaidHeight));
-            info.push_back(std::make_pair("tier", TierToString(data.nTier)));
-            info.push_back(std::make_pair("payment_address", EncodeDestination(data.collateralPubkey.GetID())));
-            info.push_back(std::make_pair("pubkey", HexStr(data.pubKey)));
-            if (chainActive.Height() >= data.nAddedBlockHeight)
-                info.push_back(std::make_pair("activesince", std::to_string(chainActive[data.nAddedBlockHeight]->nTime)));
-            else
-                info.push_back(std::make_pair("activesince", 0));
-            if (chainActive.Height() >= data.nLastPaidHeight)
-                info.push_back(std::make_pair("lastpaid", std::to_string(chainActive[data.nLastPaidHeight]->nTime)));
-            else
-                info.push_back(std::make_pair("lastpaid", 0));
+                std::string strHost = data.ip;
+                CNetAddr node = CNetAddr(strHost, false);
+                std::string strNetwork = GetNetworkName(node.GetNetwork());
 
-            info.push_back(std::make_pair("rank", count++));
+                info.push_back(std::make_pair("collateral", data.collateralIn.ToFullString()));
+                info.push_back(std::make_pair("txhash", strTxHash));
+                info.push_back(std::make_pair("outidx", data.collateralIn.GetTxIndex()));
+                info.push_back(std::make_pair("ip", data.ip));
+                info.push_back(std::make_pair("network", strNetwork));
+                info.push_back(std::make_pair("added_height", data.nAddedBlockHeight));
+                info.push_back(std::make_pair("confirmed_height", data.nConfirmedBlockHeight));
+                info.push_back(std::make_pair("last_confirmed_height", data.nLastConfirmedBlockHeight));
+                info.push_back(std::make_pair("last_paid_height", data.nLastPaidHeight));
+                info.push_back(std::make_pair("tier", TierToString(data.nTier)));
+                info.push_back(std::make_pair("payment_address", EncodeDestination(data.collateralPubkey.GetID())));
+                info.push_back(std::make_pair("pubkey", HexStr(data.pubKey)));
+                if (chainActive.Height() >= data.nAddedBlockHeight)
+                    info.push_back(
+                            std::make_pair("activesince", std::to_string(chainActive[data.nAddedBlockHeight]->nTime)));
+                else
+                    info.push_back(std::make_pair("activesince", 0));
+                if (chainActive.Height() >= data.nLastPaidHeight)
+                    info.push_back(
+                            std::make_pair("lastpaid", std::to_string(chainActive[data.nLastPaidHeight]->nTime)));
+                else
+                    info.push_back(std::make_pair("lastpaid", 0));
 
-            wholelist.push_back(info);
+                info.push_back(std::make_pair("rank", count++));
+
+                wholelist.push_back(info);
+            }
+
+
         }
-
-
+    } else {
+        error("%s - %d g_zelnodeCache doesn't have CUMULUS in fluxnode list", __func__, __LINE__);
     }
 
     count = 0;
-    for (const auto& item : g_zelnodeCache.mapZelnodeList.at(Zelnode::NIMBUS).listConfirmedZelnodes) {
+    if (g_zelnodeCache.mapZelnodeList.count(Zelnode::NIMBUS)) {
+        for (const auto &item : g_zelnodeCache.mapZelnodeList.at(Zelnode::NIMBUS).listConfirmedZelnodes) {
 
-        auto data = g_zelnodeCache.GetZelnodeData(item.out);
+            auto data = g_zelnodeCache.GetZelnodeData(item.out);
 
-        UniValue info(UniValue::VOBJ);
+            UniValue info(UniValue::VOBJ);
 
-        if (!data.IsNull())  {
-            std::string strTxHash = data.collateralIn.GetTxHash();
+            if (!data.IsNull()) {
+                std::string strTxHash = data.collateralIn.GetTxHash();
 
-            if (strFilter != "" && strTxHash.find(strFilter) == string::npos && HexStr(data.pubKey).find(strFilter) &&
-                data.ip.find(strFilter) && EncodeDestination(data.collateralPubkey.GetID()).find(strFilter) == string::npos)
-                continue;
+                if (strFilter != "" && strTxHash.find(strFilter) == string::npos &&
+                    HexStr(data.pubKey).find(strFilter) &&
+                    data.ip.find(strFilter) &&
+                    EncodeDestination(data.collateralPubkey.GetID()).find(strFilter) == string::npos)
+                    continue;
 
-            std::string strHost = data.ip;
-            CNetAddr node = CNetAddr(strHost, false);
-            std::string strNetwork = GetNetworkName(node.GetNetwork());
+                std::string strHost = data.ip;
+                CNetAddr node = CNetAddr(strHost, false);
+                std::string strNetwork = GetNetworkName(node.GetNetwork());
 
-            info.push_back(std::make_pair("collateral", data.collateralIn.ToFullString()));
-            info.push_back(std::make_pair("txhash", data.collateralIn.GetTxHash()));
-            info.push_back(std::make_pair("outidx", data.collateralIn.GetTxIndex()));
-            info.push_back(std::make_pair("ip", data.ip));
-            info.push_back(std::make_pair("network", strNetwork));
-            info.push_back(std::make_pair("added_height", data.nAddedBlockHeight));
-            info.push_back(std::make_pair("confirmed_height", data.nConfirmedBlockHeight));
-            info.push_back(std::make_pair("last_confirmed_height", data.nLastConfirmedBlockHeight));
-            info.push_back(std::make_pair("last_paid_height", data.nLastPaidHeight));
-            info.push_back(std::make_pair("tier", TierToString(data.nTier)));
-            info.push_back(std::make_pair("payment_address", EncodeDestination(data.collateralPubkey.GetID())));
-            info.push_back(std::make_pair("pubkey", HexStr(data.pubKey)));
-            if (chainActive.Height() >= data.nAddedBlockHeight)
-                info.push_back(std::make_pair("activesince", std::to_string(chainActive[data.nAddedBlockHeight]->nTime)));
-            else
-                info.push_back(std::make_pair("activesince", 0));
-            if (chainActive.Height() >= data.nLastPaidHeight)
-                info.push_back(std::make_pair("lastpaid", std::to_string(chainActive[data.nLastPaidHeight]->nTime)));
-            else
-                info.push_back(std::make_pair("lastpaid", 0));
-            info.push_back(std::make_pair("rank", count++));
+                info.push_back(std::make_pair("collateral", data.collateralIn.ToFullString()));
+                info.push_back(std::make_pair("txhash", data.collateralIn.GetTxHash()));
+                info.push_back(std::make_pair("outidx", data.collateralIn.GetTxIndex()));
+                info.push_back(std::make_pair("ip", data.ip));
+                info.push_back(std::make_pair("network", strNetwork));
+                info.push_back(std::make_pair("added_height", data.nAddedBlockHeight));
+                info.push_back(std::make_pair("confirmed_height", data.nConfirmedBlockHeight));
+                info.push_back(std::make_pair("last_confirmed_height", data.nLastConfirmedBlockHeight));
+                info.push_back(std::make_pair("last_paid_height", data.nLastPaidHeight));
+                info.push_back(std::make_pair("tier", TierToString(data.nTier)));
+                info.push_back(std::make_pair("payment_address", EncodeDestination(data.collateralPubkey.GetID())));
+                info.push_back(std::make_pair("pubkey", HexStr(data.pubKey)));
+                if (chainActive.Height() >= data.nAddedBlockHeight)
+                    info.push_back(
+                            std::make_pair("activesince", std::to_string(chainActive[data.nAddedBlockHeight]->nTime)));
+                else
+                    info.push_back(std::make_pair("activesince", 0));
+                if (chainActive.Height() >= data.nLastPaidHeight)
+                    info.push_back(
+                            std::make_pair("lastpaid", std::to_string(chainActive[data.nLastPaidHeight]->nTime)));
+                else
+                    info.push_back(std::make_pair("lastpaid", 0));
+                info.push_back(std::make_pair("rank", count++));
 
-            wholelist.push_back(info);
+                wholelist.push_back(info);
+            }
+
+
         }
-
-
+    } else {
+        error("%s - %d g_zelnodeCache doesn't have NIMBUS in fluxnode list", __func__, __LINE__);
     }
 
     count = 0;
-    for (const auto& item : g_zelnodeCache.mapZelnodeList.at(Zelnode::STRATUS).listConfirmedZelnodes) {
+    if (g_zelnodeCache.mapZelnodeList.count(Zelnode::STRATUS)) {
+        for (const auto& item : g_zelnodeCache.mapZelnodeList.at(Zelnode::STRATUS).listConfirmedZelnodes) {
 
-        auto data = g_zelnodeCache.GetZelnodeData(item.out);
+            auto data = g_zelnodeCache.GetZelnodeData(item.out);
 
-        UniValue info(UniValue::VOBJ);
+            UniValue info(UniValue::VOBJ);
 
-        if (!data.IsNull()) {
-            std::string strTxHash = data.collateralIn.GetTxHash();
+            if (!data.IsNull()) {
+                std::string strTxHash = data.collateralIn.GetTxHash();
 
-            if (strFilter != "" && strTxHash.find(strFilter) == string::npos && HexStr(data.pubKey).find(strFilter) &&
-                data.ip.find(strFilter) && EncodeDestination(data.collateralPubkey.GetID()).find(strFilter) == string::npos)
-                continue;
+                if (strFilter != "" && strTxHash.find(strFilter) == string::npos && HexStr(data.pubKey).find(strFilter) &&
+                    data.ip.find(strFilter) && EncodeDestination(data.collateralPubkey.GetID()).find(strFilter) == string::npos)
+                    continue;
 
-            std::string strHost = data.ip;
-            CNetAddr node = CNetAddr(strHost, false);
-            std::string strNetwork = GetNetworkName(node.GetNetwork());
+                std::string strHost = data.ip;
+                CNetAddr node = CNetAddr(strHost, false);
+                std::string strNetwork = GetNetworkName(node.GetNetwork());
 
-            info.push_back(std::make_pair("collateral", data.collateralIn.ToFullString()));
-            info.push_back(std::make_pair("txhash", data.collateralIn.GetTxHash()));
-            info.push_back(std::make_pair("outidx", data.collateralIn.GetTxIndex()));
-            info.push_back(std::make_pair("ip", data.ip));
-            info.push_back(std::make_pair("network", strNetwork));
-            info.push_back(std::make_pair("added_height", data.nAddedBlockHeight));
-            info.push_back(std::make_pair("confirmed_height", data.nConfirmedBlockHeight));
-            info.push_back(std::make_pair("last_confirmed_height", data.nLastConfirmedBlockHeight));
-            info.push_back(std::make_pair("last_paid_height", data.nLastPaidHeight));
-            info.push_back(std::make_pair("tier", TierToString(data.nTier)));
-            info.push_back(std::make_pair("payment_address", EncodeDestination(data.collateralPubkey.GetID())));
-            info.push_back(std::make_pair("pubkey", HexStr(data.pubKey)));
-            if (chainActive.Height() >= data.nAddedBlockHeight)
-                info.push_back(std::make_pair("activesince", std::to_string(chainActive[data.nAddedBlockHeight]->nTime)));
-            else
-                info.push_back(std::make_pair("activesince", 0));
-            if (chainActive.Height() >= data.nLastPaidHeight)
-                info.push_back(std::make_pair("lastpaid", std::to_string(chainActive[data.nLastPaidHeight]->nTime)));
-            else
-                info.push_back(std::make_pair("lastpaid", 0));
-            info.push_back(std::make_pair("rank", count++));
+                info.push_back(std::make_pair("collateral", data.collateralIn.ToFullString()));
+                info.push_back(std::make_pair("txhash", data.collateralIn.GetTxHash()));
+                info.push_back(std::make_pair("outidx", data.collateralIn.GetTxIndex()));
+                info.push_back(std::make_pair("ip", data.ip));
+                info.push_back(std::make_pair("network", strNetwork));
+                info.push_back(std::make_pair("added_height", data.nAddedBlockHeight));
+                info.push_back(std::make_pair("confirmed_height", data.nConfirmedBlockHeight));
+                info.push_back(std::make_pair("last_confirmed_height", data.nLastConfirmedBlockHeight));
+                info.push_back(std::make_pair("last_paid_height", data.nLastPaidHeight));
+                info.push_back(std::make_pair("tier", TierToString(data.nTier)));
+                info.push_back(std::make_pair("payment_address", EncodeDestination(data.collateralPubkey.GetID())));
+                info.push_back(std::make_pair("pubkey", HexStr(data.pubKey)));
+                if (chainActive.Height() >= data.nAddedBlockHeight)
+                    info.push_back(std::make_pair("activesince", std::to_string(chainActive[data.nAddedBlockHeight]->nTime)));
+                else
+                    info.push_back(std::make_pair("activesince", 0));
+                if (chainActive.Height() >= data.nLastPaidHeight)
+                    info.push_back(std::make_pair("lastpaid", std::to_string(chainActive[data.nLastPaidHeight]->nTime)));
+                else
+                    info.push_back(std::make_pair("lastpaid", 0));
+                info.push_back(std::make_pair("rank", count++));
 
-            wholelist.push_back(info);
+                wholelist.push_back(info);
+            }
         }
+    } else {
+        error("%s - %d g_zelnodeCache doesn't have STRATUS in fluxnode list", __func__, __LINE__);
     }
 
     return wholelist;
@@ -879,112 +900,126 @@ UniValue listzelnodes(const UniValue& params, bool fHelp)
         UniValue wholelist(UniValue::VARR);
 
         int count = 0;
-        for (const auto& item : g_zelnodeCache.mapZelnodeList.at(Zelnode::CUMULUS).listConfirmedZelnodes) {
+        if (g_zelnodeCache.mapZelnodeList.count(Zelnode::CUMULUS)) {
+            for (const auto& item : g_zelnodeCache.mapZelnodeList.at(Zelnode::CUMULUS).listConfirmedZelnodes) {
 
-            auto data = g_zelnodeCache.GetZelnodeData(item.out);
+                auto data = g_zelnodeCache.GetZelnodeData(item.out);
 
-            UniValue info(UniValue::VOBJ);
+                UniValue info(UniValue::VOBJ);
 
-            if (data.IsNull()) {
-                info.push_back(std::make_pair("collateral", item.out.ToFullString()));
-                info.push_back(std::make_pair("status", "expired"));
-                info.push_back(std::make_pair("last_paid_height", item.nLastPaidHeight));
-                info.push_back(std::make_pair("confirmed_height", item.nConfirmedBlockHeight));
-                info.push_back(std::make_pair("activesince", 0));
-                info.push_back(std::make_pair("lastpaid", 0));
-            } else {
-                info.push_back(std::make_pair("collateral", data.collateralIn.ToFullString()));
-                info.push_back(std::make_pair("ip", data.ip));
-                info.push_back(std::make_pair("added_height", data.nAddedBlockHeight));
-                info.push_back(std::make_pair("confirmed_height", data.nConfirmedBlockHeight));
-                info.push_back(std::make_pair("last_confirmed_height", data.nLastConfirmedBlockHeight));
-                info.push_back(std::make_pair("last_paid_height", data.nLastPaidHeight));
-                info.push_back(std::make_pair("tier", TierToString(data.nTier)));
-                info.push_back(std::make_pair("payment_address", EncodeDestination(data.collateralPubkey.GetID())));
-                if (chainActive.Height() >= data.nAddedBlockHeight)
-                    info.push_back(std::make_pair("activesince", std::to_string(chainActive[data.nAddedBlockHeight]->nTime)));
-                else
+                if (data.IsNull()) {
+                    info.push_back(std::make_pair("collateral", item.out.ToFullString()));
+                    info.push_back(std::make_pair("status", "expired"));
+                    info.push_back(std::make_pair("last_paid_height", item.nLastPaidHeight));
+                    info.push_back(std::make_pair("confirmed_height", item.nConfirmedBlockHeight));
                     info.push_back(std::make_pair("activesince", 0));
-                if (chainActive.Height() >= data.nLastPaidHeight)
-                    info.push_back(std::make_pair("lastpaid", std::to_string(chainActive[data.nLastPaidHeight]->nTime)));
-                else
                     info.push_back(std::make_pair("lastpaid", 0));
-                info.push_back(std::make_pair("rank", count++));
-            }
+                } else {
+                    info.push_back(std::make_pair("collateral", data.collateralIn.ToFullString()));
+                    info.push_back(std::make_pair("ip", data.ip));
+                    info.push_back(std::make_pair("added_height", data.nAddedBlockHeight));
+                    info.push_back(std::make_pair("confirmed_height", data.nConfirmedBlockHeight));
+                    info.push_back(std::make_pair("last_confirmed_height", data.nLastConfirmedBlockHeight));
+                    info.push_back(std::make_pair("last_paid_height", data.nLastPaidHeight));
+                    info.push_back(std::make_pair("tier", TierToString(data.nTier)));
+                    info.push_back(std::make_pair("payment_address", EncodeDestination(data.collateralPubkey.GetID())));
+                    if (chainActive.Height() >= data.nAddedBlockHeight)
+                        info.push_back(std::make_pair("activesince", std::to_string(chainActive[data.nAddedBlockHeight]->nTime)));
+                    else
+                        info.push_back(std::make_pair("activesince", 0));
+                    if (chainActive.Height() >= data.nLastPaidHeight)
+                        info.push_back(std::make_pair("lastpaid", std::to_string(chainActive[data.nLastPaidHeight]->nTime)));
+                    else
+                        info.push_back(std::make_pair("lastpaid", 0));
+                    info.push_back(std::make_pair("rank", count++));
+                }
 
-            wholelist.push_back(info);
+                wholelist.push_back(info);
+            }
+        } else {
+            error("%s - %d g_zelnodeCache doesn't have CUMULUS in fluxnode list", __func__, __LINE__);
         }
 
         count = 0;
-        for (const auto& item : g_zelnodeCache.mapZelnodeList.at(Zelnode::NIMBUS).listConfirmedZelnodes) {
+        if (g_zelnodeCache.mapZelnodeList.count(Zelnode::NIMBUS)) {
+            for (const auto &item : g_zelnodeCache.mapZelnodeList.at(Zelnode::NIMBUS).listConfirmedZelnodes) {
 
-            auto data = g_zelnodeCache.GetZelnodeData(item.out);
+                auto data = g_zelnodeCache.GetZelnodeData(item.out);
 
-            UniValue info(UniValue::VOBJ);
-            if (data.IsNull()) {
-                info.push_back(std::make_pair("collateral", item.out.ToFullString()));
-                info.push_back(std::make_pair("status", "expired"));
-                info.push_back(std::make_pair("last_paid_height", item.nLastPaidHeight));
-                info.push_back(std::make_pair("confirmed_height", item.nConfirmedBlockHeight));
-                info.push_back(std::make_pair("activesince", 0));
-                info.push_back(std::make_pair("lastpaid", 0));
-            } else {
-                info.push_back(std::make_pair("collateral", data.collateralIn.ToFullString()));
-                info.push_back(std::make_pair("ip", data.ip));
-                info.push_back(std::make_pair("added_height", data.nAddedBlockHeight));
-                info.push_back(std::make_pair("confirmed_height", data.nConfirmedBlockHeight));
-                info.push_back(std::make_pair("last_confirmed_height", data.nLastConfirmedBlockHeight));
-                info.push_back(std::make_pair("last_paid_height", data.nLastPaidHeight));
-                info.push_back(std::make_pair("tier", TierToString(data.nTier)));
-                info.push_back(std::make_pair("payment_address", EncodeDestination(data.collateralPubkey.GetID())));
-                if (chainActive.Height() >= data.nAddedBlockHeight)
-                    info.push_back(std::make_pair("activesince", std::to_string(chainActive[data.nAddedBlockHeight]->nTime)));
-                else
+                UniValue info(UniValue::VOBJ);
+                if (data.IsNull()) {
+                    info.push_back(std::make_pair("collateral", item.out.ToFullString()));
+                    info.push_back(std::make_pair("status", "expired"));
+                    info.push_back(std::make_pair("last_paid_height", item.nLastPaidHeight));
+                    info.push_back(std::make_pair("confirmed_height", item.nConfirmedBlockHeight));
                     info.push_back(std::make_pair("activesince", 0));
-                if (chainActive.Height() >= data.nLastPaidHeight)
-                    info.push_back(std::make_pair("lastpaid", std::to_string(chainActive[data.nLastPaidHeight]->nTime)));
-                else
                     info.push_back(std::make_pair("lastpaid", 0));
-                info.push_back(std::make_pair("rank", count++));
-            }
+                } else {
+                    info.push_back(std::make_pair("collateral", data.collateralIn.ToFullString()));
+                    info.push_back(std::make_pair("ip", data.ip));
+                    info.push_back(std::make_pair("added_height", data.nAddedBlockHeight));
+                    info.push_back(std::make_pair("confirmed_height", data.nConfirmedBlockHeight));
+                    info.push_back(std::make_pair("last_confirmed_height", data.nLastConfirmedBlockHeight));
+                    info.push_back(std::make_pair("last_paid_height", data.nLastPaidHeight));
+                    info.push_back(std::make_pair("tier", TierToString(data.nTier)));
+                    info.push_back(std::make_pair("payment_address", EncodeDestination(data.collateralPubkey.GetID())));
+                    if (chainActive.Height() >= data.nAddedBlockHeight)
+                        info.push_back(std::make_pair("activesince",
+                                                      std::to_string(chainActive[data.nAddedBlockHeight]->nTime)));
+                    else
+                        info.push_back(std::make_pair("activesince", 0));
+                    if (chainActive.Height() >= data.nLastPaidHeight)
+                        info.push_back(
+                                std::make_pair("lastpaid", std::to_string(chainActive[data.nLastPaidHeight]->nTime)));
+                    else
+                        info.push_back(std::make_pair("lastpaid", 0));
+                    info.push_back(std::make_pair("rank", count++));
+                }
 
-            wholelist.push_back(info);
+                wholelist.push_back(info);
+            }
+        } else {
+            error("%s - %d g_zelnodeCache doesn't have NIMBUS in fluxnode list", __func__, __LINE__);
         }
 
         count = 0;
-        for (const auto& item : g_zelnodeCache.mapZelnodeList.at(Zelnode::STRATUS).listConfirmedZelnodes) {
+        if (g_zelnodeCache.mapZelnodeList.count(Zelnode::STRATUS)) {
+            for (const auto& item : g_zelnodeCache.mapZelnodeList.at(Zelnode::STRATUS).listConfirmedZelnodes) {
 
-            auto data = g_zelnodeCache.GetZelnodeData(item.out);
+                auto data = g_zelnodeCache.GetZelnodeData(item.out);
 
-            UniValue info(UniValue::VOBJ);
+                UniValue info(UniValue::VOBJ);
 
-            if (data.IsNull()) {
-                info.push_back(std::make_pair("collateral", item.out.ToFullString()));
-                info.push_back(std::make_pair("status", "expired"));
-                info.push_back(std::make_pair("last_paid_height", item.nLastPaidHeight));
-                info.push_back(std::make_pair("confirmed_height", item.nConfirmedBlockHeight));
-                info.push_back(std::make_pair("activesince", 0));
-                info.push_back(std::make_pair("lastpaid", 0));
-            } else {
-                info.push_back(std::make_pair("collateral", data.collateralIn.ToFullString()));
-                info.push_back(std::make_pair("ip", data.ip));
-                info.push_back(std::make_pair("added_height", data.nAddedBlockHeight));
-                info.push_back(std::make_pair("confirmed_height", data.nConfirmedBlockHeight));
-                info.push_back(std::make_pair("last_confirmed_height", data.nLastConfirmedBlockHeight));
-                info.push_back(std::make_pair("last_paid_height", data.nLastPaidHeight));
-                info.push_back(std::make_pair("tier", TierToString(data.nTier)));
-                info.push_back(std::make_pair("payment_address", EncodeDestination(data.collateralPubkey.GetID())));
-                if (chainActive.Height() >= data.nAddedBlockHeight)
-                    info.push_back(std::make_pair("activesince", std::to_string(chainActive[data.nAddedBlockHeight]->nTime)));
-                else
+                if (data.IsNull()) {
+                    info.push_back(std::make_pair("collateral", item.out.ToFullString()));
+                    info.push_back(std::make_pair("status", "expired"));
+                    info.push_back(std::make_pair("last_paid_height", item.nLastPaidHeight));
+                    info.push_back(std::make_pair("confirmed_height", item.nConfirmedBlockHeight));
                     info.push_back(std::make_pair("activesince", 0));
-                if (chainActive.Height() >= data.nLastPaidHeight)
-                    info.push_back(std::make_pair("lastpaid", std::to_string(chainActive[data.nLastPaidHeight]->nTime)));
-                else
                     info.push_back(std::make_pair("lastpaid", 0));
-                info.push_back(std::make_pair("rank", count++));
+                } else {
+                    info.push_back(std::make_pair("collateral", data.collateralIn.ToFullString()));
+                    info.push_back(std::make_pair("ip", data.ip));
+                    info.push_back(std::make_pair("added_height", data.nAddedBlockHeight));
+                    info.push_back(std::make_pair("confirmed_height", data.nConfirmedBlockHeight));
+                    info.push_back(std::make_pair("last_confirmed_height", data.nLastConfirmedBlockHeight));
+                    info.push_back(std::make_pair("last_paid_height", data.nLastPaidHeight));
+                    info.push_back(std::make_pair("tier", TierToString(data.nTier)));
+                    info.push_back(std::make_pair("payment_address", EncodeDestination(data.collateralPubkey.GetID())));
+                    if (chainActive.Height() >= data.nAddedBlockHeight)
+                        info.push_back(std::make_pair("activesince", std::to_string(chainActive[data.nAddedBlockHeight]->nTime)));
+                    else
+                        info.push_back(std::make_pair("activesince", 0));
+                    if (chainActive.Height() >= data.nLastPaidHeight)
+                        info.push_back(std::make_pair("lastpaid", std::to_string(chainActive[data.nLastPaidHeight]->nTime)));
+                    else
+                        info.push_back(std::make_pair("lastpaid", 0));
+                    info.push_back(std::make_pair("rank", count++));
+                }
+                wholelist.push_back(info);
             }
-            wholelist.push_back(info);
+        } else {
+            error("%s - %d g_zelnodeCache doesn't have STRATUS in fluxnode list", __func__, __LINE__);
         }
 
         return wholelist;
@@ -1571,6 +1606,18 @@ UniValue getzelnodecount (const UniValue& params, bool fHelp)
 
     if (IsDZelnodeActive())
     {
+        if (!g_zelnodeCache.mapZelnodeList.count(Zelnode::CUMULUS)) {
+            error("%s - %d g_zelnodeCache doesn't have CUMULUS in fluxnode list", __func__, __LINE__);
+        }
+
+        if (!g_zelnodeCache.mapZelnodeList.count(Zelnode::NIMBUS)) {
+            error("%s - %d g_zelnodeCache doesn't have NIMBUS in fluxnode list", __func__, __LINE__);
+        }
+
+        if (!g_zelnodeCache.mapZelnodeList.count(Zelnode::STRATUS)) {
+            error("%s - %d g_zelnodeCache doesn't have STRATUS in fluxnode list", __func__, __LINE__);
+        }
+
         int nCUMULUS = g_zelnodeCache.mapZelnodeList.at(CUMULUS).listConfirmedZelnodes.size();
         int nNIMBUS = g_zelnodeCache.mapZelnodeList.at(NIMBUS).listConfirmedZelnodes.size();
         int nSTRATUS = g_zelnodeCache.mapZelnodeList.at(STRATUS).listConfirmedZelnodes.size();
