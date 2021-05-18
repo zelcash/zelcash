@@ -73,6 +73,7 @@ std::string GetBenchCliPath()
         return strPath + "/zelbench-cli ";
     }
 
+    return "";
 }
 
 std::string GetBenchDaemonPath()
@@ -85,6 +86,8 @@ std::string GetBenchDaemonPath()
     if (FindBenchmarkPath("zelbenchd", strPath)) {
         return strPath + "/zelbenchd ";
     }
+
+    return "";
 
 }
 
