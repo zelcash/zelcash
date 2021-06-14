@@ -44,6 +44,7 @@
 #include "key_io.h"
 #include "wallet/wallet.h"
 #include "wallet/walletdb.h"
+#include "wallet/asyncrpcoperation_saplingconsolidation.h"
 #endif
 #include <stdint.h>
 #include <stdio.h>
@@ -421,6 +422,13 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-keypool=<n>", strprintf(_("Set key pool size to <n> (default: %u)"), 100));
     strUsage += HelpMessageOpt("-migration", _("Enable the Sprout to Sapling migration"));
     strUsage += HelpMessageOpt("-migrationdestaddress=<zaddr>", _("Set the Sapling migration address"));
+    strUsage += HelpMessageOpt("-consolidation", _("Enable auto Sapling note consolidation"));
+    strUsage += HelpMessageOpt("-consolidatesaplingaddress=<zaddr>", _("Specify Sapling Address to Consolidate. (default: all)"));
+    strUsage += HelpMessageOpt("-consolidationtxfee", strprintf(_("Fee amount in Satoshis used send consolidation transactions. (default %i)"), DEFAULT_CONSOLIDATION_FEE));
+    strUsage += HelpMessageOpt("-deletetx", _("Enable Old Transaction Deletion"));
+    strUsage += HelpMessageOpt("-deleteinterval", strprintf(_("Delete transaction every <n> blocks during inital block download (default: %i)"), DEFAULT_TX_DELETE_INTERVAL));
+    strUsage += HelpMessageOpt("-keeptxnum", strprintf(_("Keep the last <n> transactions (default: %i)"), DEFAULT_TX_RETENTION_LASTTX));
+    strUsage += HelpMessageOpt("-keeptxfornblocks", strprintf(_("Keep transactions for at least <n> blocks (default: %i)"), DEFAULT_TX_RETENTION_BLOCKS));
     if (showDebug)
         strUsage += HelpMessageOpt("-mintxfee=<amt>", strprintf("Fees (in %s/kB) smaller than this are considered zero fee for transaction creation (default: %s)",
             CURRENCY_UNIT, FormatMoney(CWallet::minTxFee.GetFeePerK())));
@@ -471,7 +479,7 @@ std::string HelpMessage(HelpMessageMode mode)
         strUsage += HelpMessageOpt("-stopafterblockimport", strprintf("Stop running after importing blocks from disk (default: %u)", 0));
         strUsage += HelpMessageOpt("-nuparams=hexBranchId:activationHeight", "Use given activation height for specified network upgrade (regtest-only)");
     }
-    string debugCategories = "addrman, alert, bench, coindb, db, estimatefee, http, libevent, lock, mempool, net, partitioncheck, pow, proxy, prune, "
+    string debugCategories = "addrman, alert, bench, coindb, db, deletetx, estimatefee, http, libevent, lock, mempool, net, partitioncheck, pow, proxy, prune, "
                              "rand, reindex, rpc, selectcoins, tor, zmq, zrpc, zrpcunsafe (implies zrpc)"; // Don't translate these
     strUsage += HelpMessageOpt("-debug=<category>", strprintf(_("Output debugging information (default: %u, supplying <category> is optional)"), 0) + ". " +
         _("If <category> is not supplied or if <category> = 1, output all debugging information.") + " " + _("<category> can be:") + " " + debugCategories + ".");
@@ -496,7 +504,7 @@ std::string HelpMessage(HelpMessageMode mode)
         strUsage += HelpMessageOpt("-regtest", "Enter regression test mode, which uses a special chain in which blocks can be solved instantly. "
             "This is intended for regression testing tools and app development.");
     }
-    // strUsage += HelpMessageOpt("-shrinkdebugfile", _("Shrink debug.log file on client startup (default: 1 when no -debug)"));
+    strUsage += HelpMessageOpt("-shrinkdebugfile", _("Shrink debug.log file on client startup (default: 1 when no -debug)"));
     strUsage += HelpMessageOpt("-testnet", _("Use the test network"));
 
     strUsage += HelpMessageGroup(_("Node relay options:"));
@@ -959,6 +967,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     // ********************************************************* Step 3: parameter-to-internal-flags
 
+
     fDebug = !mapMultiArgs["-debug"].empty();
     // Special-case: if -debug=0/-nodebug is set, turn off debugging messages
     const vector<string>& categories = mapMultiArgs["-debug"];
@@ -1236,12 +1245,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             threadGroup.create_thread(&ThreadScriptCheck);
     }
 
-    if (mapArgs.count("-sporkkey")) // spork priv key
-    {
-        if (!sporkManager.SetPrivKey(GetArg("-sporkkey", "")))
-            return InitError(_("Unable to sign spork message, wrong key?"));
-    }
-
     // Start the lightweight task scheduler thread
     CScheduler::Function serviceLoop = boost::bind(&CScheduler::serviceQueue, &scheduler);
     threadGroup.create_thread(boost::bind(&TraceThread<CScheduler::Function>, "scheduler", serviceLoop));
@@ -1257,9 +1260,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         threadGroup.create_thread(&ThreadShowMetricsScreen);
     }
 
-    // Initialize Zelcash circuit parameters
-    ZC_LoadParams(chainparams);
-
     /* Start the RPC server already.  It will be started in "warmup" mode
      * and not really process calls already (but it will signify connections
      * that the server is there and will be ready later).  Warmup mode will
@@ -1270,6 +1270,16 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         uiInterface.InitMessage.connect(SetRPCWarmupStatus);
         if (!AppInitServers(threadGroup))
             return InitError(_("Unable to start HTTP server. See debug log for details."));
+    }
+    uiInterface.InitMessage(_("Initializing..."));
+
+    // Initialize Zelcash circuit parameters
+    ZC_LoadParams(chainparams);
+
+    if (mapArgs.count("-sporkkey")) // spork priv key
+    {
+        if (!sporkManager.SetPrivKey(GetArg("-sporkkey", "")))
+            return InitError(_("Unable to sign spork message, wrong key?"));
     }
 
     int64_t nStart;
@@ -1732,6 +1742,42 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             }
         }
 
+        //Set Sapling Consolidation
+        pwalletMain->fSaplingConsolidationEnabled = GetBoolArg("-consolidation", false);
+        fConsolidationTxFee  = GetArg("-consolidationtxfee", DEFAULT_CONSOLIDATION_FEE);
+        fConsolidationMapUsed = !mapMultiArgs["-consolidatesaplingaddress"].empty();
+
+        //Validate Sapling Addresses
+        vector<string>& vaddresses = mapMultiArgs["-consolidatesaplingaddress"];
+        for (int i = 0; i < vaddresses.size(); i++) {
+            LogPrintf("Consolidating Sapling Address: %s\n", vaddresses[i]);
+            auto zAddress = DecodePaymentAddress(vaddresses[i]);
+            if (!IsValidPaymentAddress(zAddress)) {
+                return InitError("Invalid consolidation address");
+            }
+        }
+
+        //Set Transaction Deletion Options
+        fTxDeleteEnabled = GetBoolArg("-deletetx", false);
+        fTxConflictDeleteEnabled = GetBoolArg("-deleteconflicttx", true);
+
+        fDeleteInterval = GetArg("-deleteinterval", DEFAULT_TX_DELETE_INTERVAL);
+        if (fDeleteInterval < 1)
+          return InitError("deleteinterval must be greater than 0");
+
+        fKeepLastNTransactions = GetArg("-keeptxnum", DEFAULT_TX_RETENTION_LASTTX);
+        if (fKeepLastNTransactions < 1)
+          return InitError("keeptxnum must be greater than 0");
+
+        fDeleteTransactionsAfterNBlocks = GetArg("-keeptxfornblocks", DEFAULT_TX_RETENTION_BLOCKS);
+        if (fDeleteTransactionsAfterNBlocks < 1)
+          return InitError("keeptxfornblocks must be greater than 0");
+
+        if (fDeleteTransactionsAfterNBlocks < MAX_REORG_LENGTH + 1 ) {
+          LogPrintf("keeptxfornblock is less the MAX_REORG_LENGTH, Setting to %i\n", MAX_REORG_LENGTH + 1);
+          fDeleteTransactionsAfterNBlocks = MAX_REORG_LENGTH + 1;
+        }
+
         if (fFirstRun)
         {
             // Create new keyUser and set as default key
@@ -1829,7 +1875,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             return InitError(_("-mineraddress is not in the local wallet. Either use a local address, or set -minetolocalwallet=0"));
         }
  #endif // ENABLE_WALLET
- 
+
         // This is leveraging the fact that boost::signals2 executes connected
         // handlers in-order. Further up, the wallet is connected to this signal
         // if the wallet is enabled. The wallet's ScriptForMining handler does
@@ -1986,10 +2032,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     }
 
     if (fZelnode) {
-        
+
         strPath = GetSelfPath();
         LogPrintf("Path: %s\n",strPath);
-       
+
          if (FindBenchmarkPath("fluxbenchd",strPath)) {
 
             LogPrintf("Found fluxbenchd in %s\n",strPath);
@@ -2014,7 +2060,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                  return InitError("Failed to find benchmark cli application");
              }
         }
-        
+
     }
 
     if (fZelnode) {

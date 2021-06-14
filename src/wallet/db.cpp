@@ -165,6 +165,55 @@ CDBEnv::VerifyResult CDBEnv::Verify(const std::string& strFile, bool (*recoverFu
     return (fRecovered ? RECOVER_OK : RECOVER_FAIL);
 }
 
+bool CDBEnv::Compact(const std::string& strFile)
+{
+    LOCK(cs_db);
+
+    DB_COMPACT dbcompact;
+    dbcompact.compact_fillpercent = 80;
+    dbcompact.compact_pages = DB_MAX_PAGES;
+    dbcompact.compact_timeout = 0;
+
+    DB_COMPACT *pdbcompact;
+    pdbcompact = &dbcompact;
+
+    int result = 1;
+    if (mapDb[strFile] != NULL) {
+        Db* pdb = mapDb[strFile];
+        result = pdb->compact(NULL, NULL, NULL, pdbcompact, DB_FREE_SPACE, NULL);
+        // delete pdb;
+        // mapDb[strFile] = NULL;
+
+      switch (result)
+      {
+        case DB_LOCK_DEADLOCK:
+          LogPrint("db","Deadlock %i\n", result);
+          break;
+        case DB_LOCK_NOTGRANTED:
+          LogPrint("db","Lock Not Granted %i\n", result);
+          break;
+        case DB_REP_HANDLE_DEAD:
+          LogPrint("db","Handle Dead %i\n", result);
+          break;
+        case DB_REP_LOCKOUT:
+          LogPrint("db","Rep Lockout %i\n", result);
+          break;
+        case EACCES:
+          LogPrint("db","Eacces %i\n", result);
+          break;
+        case EINVAL:
+          LogPrint("db","Error Invalid %i\n", result);
+          break;
+        case 0:
+          LogPrint("db","Wallet Compact Sucessful\n");
+          break;
+        default:
+          LogPrint("db","Compact result int %i\n", result);
+      }
+    }
+    return (result == 0);
+}
+
 bool CDBEnv::Salvage(const std::string& strFile, bool fAggressive, std::vector<CDBEnv::KeyValPair>& vResult)
 {
     LOCK(cs_db);

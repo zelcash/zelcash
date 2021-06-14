@@ -104,8 +104,9 @@ bool AsyncRPCOperation_saplingmigration::main_impl() {
     CCoinsViewCache coinsView(pcoinsTip);
     do {
         CAmount amountToSend = chooseAmount(availableFunds);
-        auto builder = TransactionBuilder(consensusParams, targetHeight_, MIGRATION_EXPIRY_DELTA, pwalletMain, pzelcashParams,
+        auto builder = TransactionBuilder(consensusParams, targetHeight_, pwalletMain, pzelcashParams,
                                           &coinsView, &cs_main);
+        builder.SetExpiryHeight(targetHeight_ + MIGRATION_EXPIRY_DELTA);
         LogPrint("zrpcunsafe", "%s: Beginning creating transaction with Sapling output amount=%s\n", getId(), FormatMoney(amountToSend - FEE));
         std::vector<SproutNoteEntry> fromNotes;
         CAmount fromNoteAmount = 0;
@@ -195,8 +196,31 @@ libzelcash::SaplingPaymentAddress AsyncRPCOperation_saplingmigration::getMigrati
         return *saplingAddress;
     }
 
-    fFailed = true;
-    libzelcash::SaplingPaymentAddress toAddress;
+    // Derive the address for Sapling account 0
+    auto m = libzelcash::SaplingExtendedSpendingKey::Master(seed);
+    uint32_t bip44CoinType = Params().BIP44CoinType();
+
+    // We use a fixed keypath scheme of m/32'/coin_type'/account'
+    // Derive m/32'
+    auto m_32h = m.Derive(32 | ZIP32_HARDENED_KEY_LIMIT);
+    // Derive m/32'/coin_type'
+    auto m_32h_cth = m_32h.Derive(bip44CoinType | ZIP32_HARDENED_KEY_LIMIT);
+
+
+    // Derive m/32'/coin_type'/0'
+    libzelcash::SaplingExtendedSpendingKey xsk = m_32h_cth.Derive(0 | ZIP32_HARDENED_KEY_LIMIT);
+
+    libzelcash::SaplingPaymentAddress toAddress = xsk.DefaultAddress();
+
+    // Refactor: this is similar logic as in the visitor HaveSpendingKeyForPaymentAddress and is used elsewhere
+    libzelcash::SaplingIncomingViewingKey ivk;
+    libzelcash::SaplingFullViewingKey fvk;
+    if (!(pwalletMain->GetSaplingIncomingViewingKey(toAddress, ivk) &&
+        pwalletMain->GetSaplingFullViewingKey(ivk, fvk) &&
+        pwalletMain->HaveSaplingSpendingKey(fvk))) {
+        // Sapling account 0 must be the first address returned by GenerateNewSaplingZKey
+        assert(pwalletMain->GenerateNewSaplingZKey(true) == toAddress);
+    }
 
     return toAddress;
 
